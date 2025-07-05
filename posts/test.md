@@ -6,7 +6,7 @@ labels:
 slug: test
 status: publish
 published: "2025-07-06T00:00:00+09:00"
-blogger_id: ""
+blogger_id: "7160575671815365303"
 ---
 
 ## ![(images/background.png)](images/background.png)
@@ -25,4 +25,4 @@ markdown
 1. 番号付きリスト
 > 引用文
 
-aa
+aaa
