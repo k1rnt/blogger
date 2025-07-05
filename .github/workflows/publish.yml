@@ -104,7 +104,7 @@ jobs:
       if: ${{ steps.del.outputs.deleted }}
       env:
         DELETED: ${{ steps.del.outputs.deleted }}
-        BLOGGER_CLIENT_ID:      ${{ secrets.BLOGGERGER_CLIENT_ID }}
+        BLOGGER_CLIENT_ID:      ${{ secrets.BLOGGER_CLIENT_ID }}
         BLOGGER_CLIENT_SECRET:  ${{ secrets.BLOGGER_CLIENT_SECRET }}
         BLOGGER_REFRESH_TOKEN:  ${{ secrets.BLOGGER_REFRESH_TOKEN }}
         BLOG_ID:                ${{ secrets.BLOG_ID }}
