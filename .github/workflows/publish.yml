@@ -52,14 +52,10 @@ jobs:
       run: |
         before="${{ github.event.before }}"
         after="${{ github.sha }}"
+        [ -z "$before" ] && before=$(git rev-parse "$after^")
 
-        # before が空（新規 push など）の場合は after の 1 つ前を推定
-        if [ -z "$before" ]; then
-          before=$(git rev-parse "$after^")
-        fi
-
-        # posts/ 以下の *.md 変更をカンマ区切りで取得
-        files=$(git diff --name-only "$before" "$after" -- posts | paste -sd ',' -)
+        files=$(git diff -z --name-only "$before" "$after" -- posts \
+                | tr '\0' '\n' | paste -sd ',' -)
 
         echo "files=$files" >> "$GITHUB_OUTPUT"
 
