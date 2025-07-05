@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 
@@ -14,27 +15,51 @@ import (
 	"google.golang.org/api/blogger/v3"
 	"google.golang.org/api/option"
 
-	"github.com/k1rnt/blogger/internal/convert"
-	"github.com/k1rnt/blogger/internal/meta"
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/extension"
 )
 
+type FrontMatter struct {
+	Title     string   `yaml:"title"`
+	Labels    []string `yaml:"labels"`
+	BloggerID string   `yaml:"blogger_id"`
+	Slug      string   `yaml:"slug,omitempty"`
+	Status    string   `yaml:"status,omitempty"`
+	Published string   `yaml:"published,omitempty"`
+}
+
+func markdownToHTML(md, rawBase string) string {
+	var buf strings.Builder
+	gm := goldmark.New(goldmark.WithExtensions(extension.GFM))
+	_ = gm.Convert([]byte(md), &buf)
+	return strings.ReplaceAll(buf.String(), `src="images/`, `src="`+rawBase+`/images/`)
+}
+
 func main() {
-	mdPath := flag.String("path", "", "Markdown file")
-	publish := flag.Bool("publish", true, "Publish (true) or draft (false)")
+	mdPath := flag.String("path", "", "Markdown file path")
+	publish := flag.Bool("publish", true, "true: 公開 / false: 下書き")
 	flag.Parse()
 
 	if *mdPath == "" {
-		fmt.Fprintln(os.Stderr, "path required")
-		os.Exit(1)
+		log.Fatal("path is required")
 	}
-	mdBytes, _ := ioutil.ReadFile(*mdPath)
 
-	var fm meta.FrontMatter
-	body, _ := frontmatter.Parse(strings.NewReader(string(mdBytes)), &fm)
+	mdBytes, err := ioutil.ReadFile(*mdPath)
+	if err != nil {
+		log.Fatalf("read %s: %v", *mdPath, err)
+	}
 
-	html := convert.MarkdownToHTML(string(body), os.Getenv("RAW_BASE"))
+	var fm FrontMatter
+	body, err := frontmatter.Parse(strings.NewReader(string(mdBytes)), &fm)
+	if err != nil {
+		log.Fatalf("front-matter parse error in %s: %v", *mdPath, err)
+	}
+	if fm.BloggerID == "" {
+		log.Fatalf("blogger_id missing in %s (parsed=%+v)", *mdPath, fm)
+	}
 
-	// OAuth client
+	html := markdownToHTML(string(body), os.Getenv("RAW_BASE"))
+
 	conf := &oauth2.Config{
 		ClientID:     os.Getenv("BLOGGER_CLIENT_ID"),
 		ClientSecret: os.Getenv("BLOGGER_CLIENT_SECRET"),
@@ -52,26 +77,21 @@ func main() {
 	}
 
 	if fm.BloggerID != "" {
-		// 更新（posts.update）
 		call := svc.Posts.Patch(os.Getenv("BLOG_ID"), fm.BloggerID, post)
 		if *publish {
-			call = call.Publish(true) // draft → 公開したいとき
+			call = call.Publish(true)
 		}
 		_, err := call.Do()
-		must(err)
+		if err != nil {
+			log.Fatalf("update %s: %v", *mdPath, err)
+		}
 		fmt.Println("updated:", fm.BloggerID)
 	} else {
-		// 新規
 		res, err := svc.Posts.Insert(os.Getenv("BLOG_ID"), post).
 			IsDraft(!*publish).Do()
-		must(err)
+		if err != nil {
+			log.Fatalf("insert %s: %v", *mdPath, err)
+		}
 		fmt.Println("inserted:", res.Id)
-	}
-}
-
-func must(err error) {
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
 	}
 }
