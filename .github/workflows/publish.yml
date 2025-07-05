@@ -1,51 +1,45 @@
 # .github/workflows/publish.yml
 # ───────────────────────────────────────────────────────────────
-# Blogger への insert / update を GitHub Actions で自動実行する
-#   ✔ push  : main ブランチの posts/**/*.md 変更を検知して即反映
-#   ✔ manual: 任意ファイルを下書き / 公開で投稿したいときに使う
+# GitHub → Blogger GitOps
+#   • 変更／追加  : posts.patch   → 既存記事を更新
+#   • 新規        : posts.insert  → 新規公開 or 下書き
+#   • 削除 (git rm): posts.remove → 恒久削除（ゴミ箱を介さない）
 # ───────────────────────────────────────────────────────────────
-
 name: Publish Blogger
 
 on:
   push:
-    branches: [ main ]          # main に直接コミット／マージされたら発火
-    paths:    [ 'posts/**/*.md' ]  # posts/ 以下の Markdown だけを監視
+    branches: [ main ]
+    paths:    [ 'posts/**/*.md' ]
   workflow_dispatch:
     inputs:
-      path:                    # 任意の単一 Markdown を指定
-        description: "posts/xxx.md"
+      path:
+        description: "単一 Markdown (posts/xxx.md)"
         required: false
-      publish:                 # true → 公開 / false → 下書き
-        description: "true or false"
+      publish:
+        description: "true=公開 / false=下書き (insert/patch 時)"
         default: "true"
         type: choice
-        options: [ "true", "false" ]
+        options: ["true","false"]
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-    # ─────────────────────────
-    # 1. Checkout （全履歴取得）
-    # ─────────────────────────
+    #───────────────────────────────────────────
+    # 1) Checkout（全履歴） & Go
+    #───────────────────────────────────────────
     - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0         # before/after どのコミットでも diff 可能
+      with: { fetch-depth: 0 }
 
-    # ─────────────────────────
-    # 2. Go セットアップ
-    # ─────────────────────────
     - uses: actions/setup-go@v5
-      with:
-        go-version: '1.22'
+      with: { go-version: '1.22' }
 
-    # 依存を tidy（キャッシュが無い初回だけネットに行く）
     - run: go mod tidy
 
-    # ─────────────────────────
-    # 3. 変更ファイル抽出（push）
-    # ─────────────────────────
+    #───────────────────────────────────────────
+    # 2) 変更ファイル (追加/更新) 抽出
+    #───────────────────────────────────────────
     - name: Select files (push)
       id: sel
       if: github.event_name == 'push'
@@ -59,18 +53,33 @@ jobs:
 
         echo "files=$files" >> "$GITHUB_OUTPUT"
 
-
-    # 4. 変更ファイル抽出（手動）
-    # ─────────────────────────
+    #───────────────────────────────────────────
+    # 3) 手動入力ファイル
+    #───────────────────────────────────────────
     - name: Select files (manual)
       id: sel_manual
       if: github.event_name == 'workflow_dispatch'
       run: |
         echo "files=${{ github.event.inputs.path }}" >> "$GITHUB_OUTPUT"
 
-    # ─────────────────────────
-    # 5. 該当ファイルを Blogger へ反映
-    # ─────────────────────────
+    #───────────────────────────────────────────
+    # 4) 削除ファイル抽出
+    #───────────────────────────────────────────
+    - name: Detect deleted files
+      id: del
+      if: github.event_name == 'push'
+      run: |
+        before="${{ github.event.before }}"
+        after="${{ github.sha }}"
+        [ -z "$before" ] && before=$(git rev-parse "$after^")
+
+        deleted=$(git diff --name-status "$before" "$after" -- posts \
+                 | awk '$1=="D"{print $2}' | paste -sd ',' -)
+        echo "deleted=$deleted" >> "$GITHUB_OUTPUT"
+
+    #───────────────────────────────────────────
+    # 5) Publish 追加 / 更新
+    #───────────────────────────────────────────
     - name: Publish each file
       if: ${{ steps.sel.outputs.files || steps.sel_manual.outputs.files }}
       env:
@@ -81,11 +90,32 @@ jobs:
         BLOG_ID:                ${{ secrets.BLOG_ID }}
         RAW_BASE: "https://raw.githubusercontent.com/${{ github.repository }}/main"
       run: |
-        echo "FILES=$FILES"
-        IFS=',' read -ra FILE_ARR <<< "$FILES"
-
-        for f in "${FILE_ARR[@]}"; do
-          [ -z "$f" ] && continue   # 空要素スキップ
-          echo "▶ Publishing $f"
+        IFS=',' read -ra ARR <<< "$FILES"
+        for f in "${ARR[@]}"; do
+          [ -z "$f" ] && continue
+          echo "publishing $f"
           go run ./cmd/publish -path "$f" -publish "${{ github.event.inputs.publish || 'true' }}"
         done
+
+    #───────────────────────────────────────────
+    # 6) Permanently delete removed files
+    #───────────────────────────────────────────
+    - name: Delete each file
+      if: ${{ steps.del.outputs.deleted }}
+      env:
+          DELETED: ${{ steps.del.outputs.deleted }}
+          BLOGGER_CLIENT_ID:      ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET:  ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN:  ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          BLOG_ID:                ${{ secrets.BLOG_ID }}
+      run: |
+          before="${{ github.event.before }}"
+          [ -z "$before" ] && before=$(git rev-parse "${{ github.sha }}^")
+
+          IFS=',' read -ra ARR <<< "$DELETED"
+          for f in "${ARR[@]}"; do
+          [ -z "$f" ] && continue
+          id=$(git show "$before:$f" | grep -E '^blogger_id' | sed -E 's/.*"?(.*)"?/\1/')
+          echo "🗑  delete $f -> $id"
+          go run ./cmd/delete -id "$id"
+          done
