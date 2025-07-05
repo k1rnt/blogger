@@ -53,8 +53,11 @@ func main() {
 
 	if fm.BloggerID != "" {
 		// 更新（posts.update）
-		_, err := svc.Posts.Update(os.Getenv("BLOG_ID"), fm.BloggerID, post).
-			IsDraft(!*publish).Do()
+		call := svc.Posts.Patch(os.Getenv("BLOG_ID"), fm.BloggerID, post)
+		if *publish {
+			call = call.Publish(true) // draft → 公開したいとき
+		}
+		_, err := call.Do()
 		must(err)
 		fmt.Println("updated:", fm.BloggerID)
 	} else {
