@@ -1,64 +1,95 @@
+# .github/workflows/publish.yml
+# ───────────────────────────────────────────────────────────────
+# Blogger への insert / update を GitHub Actions で自動実行する
+#   ✔ push  : main ブランチの posts/**/*.md 変更を検知して即反映
+#   ✔ manual: 任意ファイルを下書き / 公開で投稿したいときに使う
+# ───────────────────────────────────────────────────────────────
+
 name: Publish Blogger
+
 on:
   push:
-    branches: [ main ]
-    paths: [ 'posts/**/*.md' ]
+    branches: [ main ]          # main に直接コミット／マージされたら発火
+    paths:    [ 'posts/**/*.md' ]  # posts/ 以下の Markdown だけを監視
   workflow_dispatch:
     inputs:
-      path:
-        description: "単体 MD を指定（任意）"
+      path:                    # 任意の単一 Markdown を指定
+        description: "posts/xxx.md"
         required: false
-      publish:
-        description: "true=公開 / false=下書き"
+      publish:                 # true → 公開 / false → 下書き
+        description: "true or false"
         default: "true"
         type: choice
-        options: ["true","false"]
+        options: [ "true", "false" ]
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
+    # ─────────────────────────
+    # 1. Checkout （全履歴取得）
+    # ─────────────────────────
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0         # before/after どのコミットでも diff 可能
 
-      - uses: actions/setup-go@v5
-        with: { go-version: '1.22' }
+    # ─────────────────────────
+    # 2. Go セットアップ
+    # ─────────────────────────
+    - uses: actions/setup-go@v5
+      with:
+        go-version: '1.22'
 
-      - name: Install deps
-        run: go mod tidy
+    # 依存を tidy（キャッシュが無い初回だけネットに行く）
+    - run: go mod tidy
 
-      - name: Select files (push)
-        id: sel
-        if: github.event_name == 'push'
-        run: |
-            before="${{ github.event.before }}"
-            after="${{ github.sha }}"
-            if [ -z "$before" ]; then
-            before=$(git rev-parse "$after^")
-            fi
+    # ─────────────────────────
+    # 3. 変更ファイル抽出（push）
+    # ─────────────────────────
+    - name: Select files (push)
+      id: sel
+      if: github.event_name == 'push'
+      run: |
+        before="${{ github.event.before }}"
+        after="${{ github.sha }}"
 
-            files=$(git diff --name-only "$before" "$after" \
-                    | grep -E '^posts/.*\.md$' | paste -sd ',' -)
+        # before が空（新規 push など）の場合は after の 1 つ前を推定
+        if [ -z "$before" ]; then
+          before=$(git rev-parse "$after^")
+        fi
 
-            echo "files=$files" >> "$GITHUB_OUTPUT"
+        # posts/ 以下の *.md 変更をカンマ区切りで取得
+        files=$(git diff --name-only "$before" "$after" -- posts | paste -sd ',' -)
 
-      - name: Select files (manual)
-        id: sel_manual
-        if: github.event_name == 'workflow_dispatch'
-        run: echo files=${{ github.event.inputs.path }} >> "$GITHUB_OUTPUT"
+        echo "files=$files" >> "$GITHUB_OUTPUT"
 
-      - name: Publish each file
-        run: |
-          IFS=',' read -ra FILES <<< "${FILES}"
-          for f in "${FILES[@]}"; do
-            echo "===> $f"
-            go run ./cmd/publish -path "$f" -publish "${{ github.event.inputs.publish || 'true' }}"
-          done
-        env:
-          FILES: ${{ steps.sel.outputs.files || steps.sel_manual.outputs.files }}
-          BLOGGER_CLIENT_ID:      ${{ secrets.BLOGGER_CLIENT_ID }}
-          BLOGGER_CLIENT_SECRET:  ${{ secrets.BLOGGER_CLIENT_SECRET }}
-          BLOGGER_REFRESH_TOKEN:  ${{ secrets.BLOGGER_REFRESH_TOKEN }}
-          BLOG_ID:                ${{ secrets.BLOG_ID }}
-          RAW_BASE: "https://raw.githubusercontent.com/${{ github.repository }}/main"
+
+    # 4. 変更ファイル抽出（手動）
+    # ─────────────────────────
+    - name: Select files (manual)
+      id: sel_manual
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        echo "files=${{ github.event.inputs.path }}" >> "$GITHUB_OUTPUT"
+
+    # ─────────────────────────
+    # 5. 該当ファイルを Blogger へ反映
+    # ─────────────────────────
+    - name: Publish each file
+      if: ${{ steps.sel.outputs.files || steps.sel_manual.outputs.files }}
+      env:
+        FILES:  ${{ steps.sel.outputs.files || steps.sel_manual.outputs.files }}
+        BLOGGER_CLIENT_ID:      ${{ secrets.BLOGGER_CLIENT_ID }}
+        BLOGGER_CLIENT_SECRET:  ${{ secrets.BLOGGER_CLIENT_SECRET }}
+        BLOGGER_REFRESH_TOKEN:  ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+        BLOG_ID:                ${{ secrets.BLOG_ID }}
+        RAW_BASE: "https://raw.githubusercontent.com/${{ github.repository }}/main"
+      run: |
+        echo "FILES=$FILES"
+        IFS=',' read -ra FILE_ARR <<< "$FILES"
+
+        for f in "${FILE_ARR[@]}"; do
+          [ -z "$f" ] && continue   # 空要素スキップ
+          echo "▶ Publishing $f"
+          go run ./cmd/publish -path "$f" -publish "${{ github.event.inputs.publish || 'true' }}"
+        done
