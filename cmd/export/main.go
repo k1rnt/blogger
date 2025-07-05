@@ -71,7 +71,7 @@ func main() {
 			fm := meta.FrontMatter{
 				Title:     p.Title,
 				Labels:    p.Labels,
-				BloggerID: p.Id,
+				BloggerID: fmt.Sprintf("%q", p.Id),
 				Slug:      slug,
 				Status:    "publish",
 				Published: p.Published,
