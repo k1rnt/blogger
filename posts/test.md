@@ -6,7 +6,7 @@ labels:
 slug: test
 status: publish
 published: "2025-07-06T00:00:00+09:00"
-blogger_id: "9222254115341619600"
+blogger_id: ""
 ---
 
 ## ![(images/background.png)](images/background.png)
