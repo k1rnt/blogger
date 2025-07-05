@@ -32,12 +32,13 @@ func markdownToHTML(md, rawBase string) string {
 	var buf strings.Builder
 	gm := goldmark.New(goldmark.WithExtensions(extension.GFM))
 	_ = gm.Convert([]byte(md), &buf)
+	// 画像パスを GitHub Raw URL に変換
 	return strings.ReplaceAll(buf.String(), `src="images/`, `src="`+rawBase+`/images/`)
 }
 
 func main() {
-	mdPath := flag.String("path", "", "Markdown file path")
-	publish := flag.Bool("publish", true, "true: 公開 / false: 下書き")
+	mdPath := flag.String("path", "", "Markdown file to publish")
+	publish := flag.Bool("publish", true, "true: publish / false: draft")
 	flag.Parse()
 
 	if *mdPath == "" {
@@ -53,9 +54,6 @@ func main() {
 	body, err := frontmatter.Parse(strings.NewReader(string(mdBytes)), &fm)
 	if err != nil {
 		log.Fatalf("front-matter parse error in %s: %v", *mdPath, err)
-	}
-	if fm.BloggerID == "" {
-		log.Fatalf("blogger_id missing in %s (parsed=%+v)", *mdPath, fm)
 	}
 
 	html := markdownToHTML(string(body), os.Getenv("RAW_BASE"))
@@ -76,18 +74,21 @@ func main() {
 		Labels:  fm.Labels,
 	}
 
+	blogID := os.Getenv("BLOG_ID")
 	if fm.BloggerID != "" {
-		call := svc.Posts.Patch(os.Getenv("BLOG_ID"), fm.BloggerID, post)
+		// ---- update existing ----
+		call := svc.Posts.Patch(blogID, fm.BloggerID, post)
 		if *publish {
 			call = call.Publish(true)
 		}
-		_, err := call.Do()
-		if err != nil {
+		if _, err := call.Do(); err != nil {
 			log.Fatalf("update %s: %v", *mdPath, err)
 		}
 		fmt.Println("updated:", fm.BloggerID)
+
 	} else {
-		res, err := svc.Posts.Insert(os.Getenv("BLOG_ID"), post).
+		// ---- insert new ----
+		res, err := svc.Posts.Insert(blogID, post).
 			IsDraft(!*publish).Do()
 		if err != nil {
 			log.Fatalf("insert %s: %v", *mdPath, err)
