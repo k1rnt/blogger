@@ -1,0 +1,53 @@
+name: Publish Blogger
+on:
+  push:
+    branches: [ main ]
+    paths: [ 'posts/**/*.md' ]
+  workflow_dispatch:
+    inputs:
+      path:
+        description: "単体 MD を指定（任意）"
+        required: false
+      publish:
+        description: "true=公開 / false=下書き"
+        default: "true"
+        type: choice
+        options: ["true","false"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.22' }
+
+      - name: Install deps
+        run: go mod tidy
+
+      - name: Select files (push)
+        id: sel
+        if: github.event_name == 'push'
+        run: |
+          echo files=$(bash .github/workflows/changed-files.sh "$GITHUB_EVENT_BEFORE" "$GITHUB_SHA" | paste -sd ',' -) >> "$GITHUB_OUTPUT"
+
+      - name: Select files (manual)
+        id: sel_manual
+        if: github.event_name == 'workflow_dispatch'
+        run: echo files=${{ github.event.inputs.path }} >> "$GITHUB_OUTPUT"
+
+      - name: Publish each file
+        run: |
+          IFS=',' read -ra FILES <<< "${FILES}"
+          for f in "${FILES[@]}"; do
+            echo "===> $f"
+            go run ./cmd/publish -path "$f" -publish "${{ github.event.inputs.publish || 'true' }}"
+          done
+        env:
+          FILES: ${{ steps.sel.outputs.files || steps.sel_manual.outputs.files }}
+          BLOGGER_CLIENT_ID:      ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET:  ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN:  ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          BLOG_ID:                ${{ secrets.BLOG_ID }}
+          RAW_BASE: "https://raw.githubusercontent.com/${{ github.repository }}/main"
