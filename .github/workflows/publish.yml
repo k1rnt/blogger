@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - uses: actions/setup-go@v5
         with: { go-version: '1.22' }
@@ -30,7 +32,13 @@ jobs:
         id: sel
         if: github.event_name == 'push'
         run: |
-          echo files=$(bash .github/workflows/changed-files.sh "$GITHUB_EVENT_BEFORE" "$GITHUB_SHA" | paste -sd ',' -) >> "$GITHUB_OUTPUT"
+          before="${{ github.event.before }}"
+          after="${{ github.sha }}"
+          if [ -z "$before" ]; then
+            before=$(git rev-parse "$after^")
+          fi
+          files=$(git diff --name-only "$before" "$after" -- 'posts/**/*.md' | paste -sd ',' -)
+          echo "files=$files" >> "$GITHUB_OUTPUT"
 
       - name: Select files (manual)
         id: sel_manual
