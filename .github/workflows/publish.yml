@@ -103,19 +103,29 @@ jobs:
     - name: Delete each file
       if: ${{ steps.del.outputs.deleted }}
       env:
-          DELETED: ${{ steps.del.outputs.deleted }}
-          BLOGGER_CLIENT_ID:      ${{ secrets.BLOGGER_CLIENT_ID }}
-          BLOGGER_CLIENT_SECRET:  ${{ secrets.BLOGGER_CLIENT_SECRET }}
-          BLOGGER_REFRESH_TOKEN:  ${{ secrets.BLOGGER_REFRESH_TOKEN }}
-          BLOG_ID:                ${{ secrets.BLOG_ID }}
+        DELETED: ${{ steps.del.outputs.deleted }}
+        BLOGGER_CLIENT_ID:      ${{ secrets.BLOGGERGER_CLIENT_ID }}
+        BLOGGER_CLIENT_SECRET:  ${{ secrets.BLOGGER_CLIENT_SECRET }}
+        BLOGGER_REFRESH_TOKEN:  ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+        BLOG_ID:                ${{ secrets.BLOG_ID }}
       run: |
-          before="${{ github.event.before }}"
-          [ -z "$before" ] && before=$(git rev-parse "${{ github.sha }}^")
+        before="${{ github.event.before }}"
+        [ -z "$before" ] && before=$(git rev-parse "${{ github.sha }}^")
 
-          IFS=',' read -ra ARR <<< "$DELETED"
-          for f in "${ARR[@]}"; do
+        IFS=',' read -ra ARR <<< "$DELETED"
+        for f in "${ARR[@]}"; do
           [ -z "$f" ] && continue
-          id=$(git show "$before:$f" | grep -E '^blogger_id' | sed -E 's/.*"?(.*)"?/\1/')
+          id=$(git show "$before:$f" 2>/dev/null \
+                | sed -n -E '1,/^---/p' \
+                | grep -m1 -E '^[[:space:]]*blogger_id' \
+                | sed -E 's/^[[:space:]]*blogger_id[[:space:]]*:[[:space:]]*"?([^"]+)"?/\1/')
+
+          # ---- ID が取れなければ即エラーで落とす ----
+          if [ -z "$id" ]; then
+            echo "❌ blogger_id not found in $f"
+            exit 1
+          fi
+
           echo "🗑  delete $f -> $id"
           go run ./cmd/delete -id "$id"
-          done
+        done
