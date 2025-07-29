@@ -11,3 +11,6 @@ tokencache.json
 
 # venv
 venv/
+
+# secret
+client_secret.json
