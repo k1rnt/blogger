@@ -3,21 +3,21 @@ title: 2025年、今年買ってよかったもの
 labels: 
     - アドベントカレンダー
     - 雑記
-blogger_id: ""
+blogger_id: "5171846304499687653"
 status: publish
 ---
-[![](/images/abarth.jpg)]
+[![](https://github.com/k1rnt/blogger/blob/main/images/abarth.jpg)]
 
 この記事は、[RWPL Advent Calendar 2025](https://adventar.org/calendars/11609) の7日目の記事です。
 ある日、RWPL内でこんな会話が行われていました。
-![](/images/rwpladv2025-chat.png)
+![](https://github.com/k1rnt/blogger/blob/main/images/rwpladv2025-chat.png)
 偶然にも、4日目に記事を書いたguaと同じ購入件数でした。
 というわけで、この記事では今年買ってよかったものを紹介します。
 
 ## 2025年、今年買ってよかったもの
 
 ### 1位: アバルト695C ツーリズモ
-![](/images/abarth.jpg)  
+![](https://github.com/k1rnt/blogger/blob/main/images/abarth.jpg)  
 早速ですが、Amazonで購入したものではありません。  
 イタリアのアバルトというメーカーの、アバルト695C ツーリズモというモデルを購入しました。この「C」と付くモデルは、屋根が開くタイプの車です。  
 元々、アバルト595C ツーリズモという車が数年前から欲しいと思っていたのですが、ちょうどその頃、アバルトのガソリン車としてはほぼ最後のモデルとなる695シリーズが、595シリーズの後継として登場しました。  
@@ -28,7 +28,7 @@ status: publish
 特に気に入っているのは、見た目の可愛さとパワーのある走りのギャップです。  
 
 ### 2位: コカ・コーラ 綾鷹 525mlPET×24本
-![](/images/ayataka-2025.png)
+![](https://github.com/k1rnt/blogger/blob/main/images/ayataka-2025.png)
 大量に買っています。基本的に毎日これを飲んで生きています。  
 この画像を見ると約1ヶ月に1ケースのペースに見えますが、実際には1ヶ月に4ケースずつ買っています。  
 つまり毎月約96本の綾鷹を飲んでいる計算になります。  
@@ -36,7 +36,7 @@ status: publish
 絶対なにか入っているんじゃないかと思えてくるレベルですが、美味しく飲めているので良しとしています。  
 
 ### 3位: SONY WH-1000XM6
-![](/images/wh1000xm6.png)
+![](https://github.com/k1rnt/blogger/blob/main/images/wh1000xm6.png)
 ほぼ初めて購入した、まともなヘッドホンです。  
 というのも、私は過去に一度だけ1000円程度のヘッドホンを買ったことがあるのですが、耳や頭が痛くなり使わなくなってしまいました。その経験からヘッドホンの購入を避けていたのです。  
 このヘッドホンを買う前までは、元々持っていたサウンドバーをよく使っていたのですが、深夜帯に大音量を流し続けることができなくなり、今回改めてヘッドホンの購入を決めました。  
