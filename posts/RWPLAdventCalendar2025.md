@@ -6,13 +6,13 @@ labels:
 blogger_id: "5171846304499687653"
 status: publish
 ---
-[![](https://raw.githubusercontent.com/k1rnt/blogger/refs/heads/main/images/abarth.jpg)]
+![](https://raw.githubusercontent.com/k1rnt/blogger/refs/heads/main/images/abarth.jpg)
 
-この記事は、[RWPL Advent Calendar 2025](https://adventar.org/calendars/11609) の7日目の記事です。
-ある日、RWPL内でこんな会話が行われていました。
-![](https://raw.githubusercontent.com/k1rnt/blogger/refs/heads/main/images/rwpladv2025-chat.png)
-偶然にも、4日目に記事を書いたguaと同じ購入件数でした。
-というわけで、この記事では今年買ってよかったものを紹介します。
+この記事は、[RWPL Advent Calendar 2025](https://adventar.org/calendars/11609) の7日目の記事です。  
+ある日、RWPL内でこんな会話が行われていました。  
+![](https://raw.githubusercontent.com/k1rnt/blogger/refs/heads/main/images/rwpladv2025-chat.png)  
+偶然にも、4日目に記事を書いたguaと同じ購入件数でした。  
+というわけで、この記事では今年買ってよかったものを紹介します。  
 
 ## 2025年、今年買ってよかったもの
 
