@@ -3,10 +3,10 @@ title: Zeroconf の思想で考える LAN 内デバイス Discovery
 labels:
     - tech
     - 雑記
-blogger_id: ""
+blogger_id: "7361444998908778544"
 status: publish
 ---
-![](/images/zeroconf_mdns_discovery.jpg)
+![](https://github.com/k1rnt/blogger/blob/main/images/zeroconf_mdns_discovery.jpg?raw=true)
 
 LAN 内に存在するデバイスを見つけたい、という要求はよくある。
 一方で、実際にそれを「ちゃんと」実装しようとすると、想像以上に設計要素が多いことに気づく。
@@ -38,10 +38,10 @@ Zeroconf の思想に基づく mDNS discovery について整理する。
 
 つまり、
 
-> Zeroconf の思想を、具体的に実現するための中核技術が mDNS
+    | Zeroconf の思想を、具体的に実現するための中核技術が mDNS
 
 という関係になる。
-![](/images/zeroconf_mdns_discovery-1.jpg)
+![](https://github.com/k1rnt/blogger/blob/main/images/zeroconf_mdns_discovery-1.jpg?raw=true)
 
 今回の discovery は、Zeroconf の思想に従い、mDNS を使って実装したものと位置づけるのが一番正確だ。
 
@@ -66,7 +66,7 @@ LAN 内 discovery の手法はいくつかある。
 
 特に、
 
-> 探しに行くのではなく、広告されているものを受け取る
+    | 探しに行くのではなく、広告されているものを受け取る
 
 という点は、Zeroconf の思想そのものでもある。
 
@@ -77,7 +77,7 @@ LAN 内 discovery の手法はいくつかある。
 mDNS を使うと、確かに色々なレスポンスが返ってくる。
 しかし、実装して最初に直面するのは次の問題だ。
 
-> 見つかるが、それが使いたいデバイスとは限らない
+    | 見つかるが、それが使いたいデバイスとは限らない
 
 実際には、次のようなものが平然と混ざる。
 
@@ -86,7 +86,7 @@ mDNS を使うと、確かに色々なレスポンスが返ってくる。
 - 名前が似ているだけの別物
 - キャッシュされた古い情報
 
-![](/images/zeroconf_mdns_discovery-2.jpg)
+![](https://github.com/k1rnt/blogger/blob/main/images/zeroconf_mdns_discovery-2.jpg?raw=true)
 
 mDNS では各レコードに TTL が設定されており、またデバイスがネットワークから離脱する際にはGoodbye packet が送信されることもある。  
 しかし実装や環境によっては、これらが必ずしも期待通りに機能するとは限らない。  
@@ -97,7 +97,7 @@ mDNS では各レコードに TTL が設定されており、またデバイス�
 
 ## Discovery の全体像（抽象）
 
-![](/images/zeroconf_mdns_discovery-3.jpg)
+![](https://github.com/k1rnt/blogger/blob/main/images/zeroconf_mdns_discovery-3.jpg?raw=true)
 
 実装上の流れは大まかに以下。
 
@@ -157,7 +157,7 @@ let ip = addresses
 リンクローカル IPv6 は同一セグメント内でしか到達できず、ルーティングされない。
 そのため、LAN 内であっても扱いが面倒になることが多い。
 
-> IPv4 があれば IPv4、なければグローバル IPv6
+    | IPv4 があれば IPv4、なければグローバル IPv6
 
 という単純なルールで十分だった。
 
@@ -186,7 +186,7 @@ let friendly_name = properties
 実装では、複数の候補キーを試す形にしている。
 存在しなければ `None` のまま持ち、無理に補完しない。
 
-> TXT レコードはあくまで「ヒント」
+    | TXT レコードはあくまで「ヒント」
 
 と考えて扱うのが安全だ。
 
@@ -216,7 +216,7 @@ if is_target || info.get_type() == SERVICE_TYPE {
 
 一見すると緩い条件に見えるが、service type で browse している時点である程度絞られているため、これで十分機能する。
 
-> 厳しすぎる条件は、正当なデバイスを弾くリスクがある
+    | 厳しすぎる条件は、正当なデバイスを弾くリスクがある
 
 このバランスは、実際に動かしながら調整した。
 
@@ -259,7 +259,7 @@ fn normalize(record: MdnsRecord) -> Option<DiscoveredDevice> {
 }
 ```
 
-![](/images/zeroconf_mdns_discovery-4.jpg)
+![](https://github.com/k1rnt/blogger/blob/main/images/zeroconf_mdns_discovery-4.jpg?raw=true)
 
 ここで意識している点は：
 
